@@ -158,8 +158,10 @@ export async function summarizeChat(args: {
       },
     })
     .catch((err: unknown) => {
+      // Log the real upstream error server-side; never leak it to the client.
+      console.error("Gemini request failed:", err);
       throw new SummarizeError(
-        err instanceof Error ? `Gemini request failed: ${err.message}` : "Gemini request failed.",
+        "The AI service could not process this chat right now. Please try again.",
       );
     });
 
