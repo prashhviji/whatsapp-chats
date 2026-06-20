@@ -10,8 +10,25 @@
  * item cites the message ids it came from, so each claim links back to the exact
  * source message. The request shape below was validated against the live API.
  */
-import type { ChatSummary } from "./types";
+import type { ChatSummary, StoryEmotion } from "./types";
 import type { ChatStats } from "./clean";
+
+// Emotions the story narrator may use. Kept in one place: feeds the response
+// schema's enum here and the emoji/voice maps in the side panel.
+export const STORY_EMOTIONS: StoryEmotion[] = [
+  "neutral",
+  "happy",
+  "excited",
+  "celebratory",
+  "tense",
+  "frustrated",
+  "sad",
+  "anxious",
+  "decisive",
+  "funny",
+  "surprised",
+  "grateful",
+];
 
 const MODEL = "gemini-2.5-flash";
 const ENDPOINT = (key: string) =>
@@ -33,6 +50,17 @@ const RESPONSE_SCHEMA = {
   type: "OBJECT",
   properties: {
     overview: { type: "STRING" },
+    story: {
+      type: "ARRAY",
+      items: cited(
+        {
+          narration: { type: "STRING" },
+          emotion: { type: "STRING", enum: STORY_EMOTIONS },
+          participants: { type: "ARRAY", items: { type: "STRING" } },
+        },
+        ["narration", "emotion", "participants", "sourceIds"],
+      ),
+    },
     debates: {
       type: "ARRAY",
       items: cited({ topic: { type: "STRING" }, positions: { type: "STRING" } }, [
@@ -64,8 +92,8 @@ const RESPONSE_SCHEMA = {
       ),
     },
   },
-  required: ["overview", "debates", "decisions", "actionItems", "needsYou"],
-  propertyOrdering: ["overview", "debates", "decisions", "actionItems", "needsYou"],
+  required: ["overview", "story", "debates", "decisions", "actionItems", "needsYou"],
+  propertyOrdering: ["overview", "story", "debates", "decisions", "actionItems", "needsYou"],
 };
 
 const SYSTEM_INSTRUCTION = `You are an analyst who turns a noisy WhatsApp group conversation into a concise, accurate briefing for a busy stakeholder.
@@ -76,7 +104,13 @@ You receive a transcript where every message is prefixed with a citation id like
 2. DO NOT FABRICATE. Only report decisions, tasks and positions that actually appear. If something is unresolved or ambiguous, either say so plainly or omit it. Omitting is better than guessing.
 3. DECISIONS are things the group actually agreed on or finalized. ACTION ITEMS are concrete tasks owned by a specific person ("assignee"). DEBATES are topics with genuine disagreement or trade-off discussion — summarize the opposing positions and the reasoning.
 4. Be businesslike and concise. Use participants' real names. Keep the overview to a few sentences.
-5. NEEDS YOU: if a focus user is given, list messages that mention them, ask them a question, or assign them a task, tagged by type. If no focus user is given, return an empty array.`;
+5. NEEDS YOU: if a focus user is given, list messages that mention them, ask them a question, or assign them a task, tagged by type. If no focus user is given, return an empty array.
+6. STORY: retell the conversation as a short, vivid narrative split into ordered beats (scenes) — this powers a "drag to play the story" timeline. Rules for the story:
+   - Each beat is 1-2 sentences of narration in a warm storyteller voice (past tense, with genuine feeling), describing what happened in that moment.
+   - Set "emotion" to the dominant feeling of that beat (one of the allowed values).
+   - List the "participants" actually involved in that beat, using their EXACT names or numbers as they appear in the transcript.
+   - Cite the supporting message ids in sourceIds. NEVER invent events, people or ids.
+   - Use between 3 and 12 beats depending on how much actually happened. Order them chronologically. If the chat is tiny or has no real arc, a single calm beat is fine.`;
 
 function buildPrompt(transcript: string, stats: ChatStats, focusUser?: string): string {
   const counts = stats.participants.map((p) => `${p.name}: ${p.count}`).join("\n");
@@ -105,10 +139,23 @@ function ids(v: unknown): string[] {
   return asArray(v).filter((x): x is string => typeof x === "string");
 }
 
+function coerceEmotion(v: unknown): StoryEmotion {
+  return (STORY_EMOTIONS as string[]).includes(str(v)) ? (str(v) as StoryEmotion) : "neutral";
+}
+
 function coerceSummary(parsed: unknown): ChatSummary {
   const o = (parsed ?? {}) as Record<string, unknown>;
   return {
     overview: str(o.overview),
+    story: asArray(o.story).map((b) => {
+      const x = (b ?? {}) as Record<string, unknown>;
+      return {
+        narration: str(x.narration),
+        emotion: coerceEmotion(x.emotion),
+        participants: asArray(x.participants).filter((p): p is string => typeof p === "string"),
+        sourceIds: ids(x.sourceIds),
+      };
+    }),
     debates: asArray(o.debates).map((d) => {
       const x = (d ?? {}) as Record<string, unknown>;
       return { topic: str(x.topic), positions: str(x.positions), sourceIds: ids(x.sourceIds) };
@@ -177,7 +224,8 @@ export async function summarizeWithGemini(args: {
     generationConfig: {
       responseMimeType: "application/json",
       responseSchema: RESPONSE_SCHEMA,
-      temperature: 0.2,
+      // A little warmth for the story while keeping the analysis grounded.
+      temperature: 0.35,
     },
   };
 

@@ -6,8 +6,32 @@ export interface ScrapedMessage {
   text: string;
 }
 
+/** Emotions the model may tag a story beat with (drives emoji + voice tone). */
+export type StoryEmotion =
+  | "neutral"
+  | "happy"
+  | "excited"
+  | "celebratory"
+  | "tense"
+  | "frustrated"
+  | "sad"
+  | "anxious"
+  | "decisive"
+  | "funny"
+  | "surprised"
+  | "grateful";
+
+/** One scene in the "drag to play" story timeline. */
+export interface StoryBeat {
+  narration: string;
+  emotion: StoryEmotion;
+  participants: string[];
+  sourceIds: string[];
+}
+
 export interface ChatSummary {
   overview: string;
+  story: StoryBeat[];
   debates: { topic: string; positions: string; sourceIds: string[] }[];
   decisions: { decision: string; sourceIds: string[] }[];
   actionItems: { assignee: string; task: string; sourceIds: string[] }[];
