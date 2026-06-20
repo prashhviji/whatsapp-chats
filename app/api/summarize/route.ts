@@ -23,6 +23,9 @@ const CORS_HEADERS: Record<string, string> = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
   "Access-Control-Allow-Headers": "Content-Type",
+  // Chrome's Private Network Access: a page/extension calling http://localhost
+  // must get this on the preflight, or fetch() fails with a generic network error.
+  "Access-Control-Allow-Private-Network": "true",
 };
 
 function json(data: unknown, status = 200, extraHeaders: Record<string, string> = {}) {
