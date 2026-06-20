@@ -1,14 +1,16 @@
 import { useEffect, useState } from "react";
 import type { ScrapeResponse, SummarizeResponse, TranscriptMessage } from "../types";
+import { runSummary, SummarizeError } from "../summarizer";
 
 const STORAGE_KEY = "wa_summarizer_settings";
+const API_KEY_URL = "https://aistudio.google.com/apikey";
 
 interface Settings {
-  backendUrl: string;
+  apiKey: string;
   focusUser: string;
   target: number;
 }
-const DEFAULTS: Settings = { backendUrl: "http://localhost:3000", focusUser: "", target: 500 };
+const DEFAULTS: Settings = { apiKey: "", focusUser: "", target: 500 };
 
 type Status = "idle" | "scraping" | "summarizing";
 
@@ -22,11 +24,14 @@ export function App() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<SummarizeResponse | null>(null);
   const [highlight, setHighlight] = useState<string | null>(null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     chrome.storage.local.get(STORAGE_KEY).then((data) => {
       const saved = data?.[STORAGE_KEY] as Partial<Settings> | undefined;
       if (saved) setSettings({ ...DEFAULTS, ...saved });
+      // First run (no key yet) → open Settings so the key field is visible.
+      if (!saved?.apiKey) setSettingsOpen(true);
       setLoaded(true);
     });
   }, []);
@@ -51,6 +56,12 @@ export function App() {
     setError(null);
     setResult(null);
     setProgress(0);
+
+    if (!settings.apiKey.trim()) {
+      setError("Add your free Gemini API key in Settings below to get started.");
+      setSettingsOpen(true);
+      return;
+    }
 
     const [tab] = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
     if (!tab?.id) {
@@ -90,25 +101,18 @@ export function App() {
 
     setStatus("summarizing");
     try {
-      const url = settings.backendUrl.replace(/\/+$/, "") + "/api/summarize";
-      const res = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          messages: scrape.messages,
-          focusUser: settings.focusUser.trim() || undefined,
-        }),
+      const data = await runSummary({
+        apiKey: settings.apiKey,
+        messages: scrape.messages,
+        focusUser: settings.focusUser.trim() || undefined,
       });
-      const data = await res.json();
       setStatus("idle");
-      if (!res.ok) {
-        setError(data?.error ?? "The summary request failed.");
-        return;
-      }
-      setResult(data as SummarizeResponse);
-    } catch {
+      setResult(data);
+    } catch (err) {
       setStatus("idle");
-      setError(`Could not reach the backend at ${settings.backendUrl}. Is the app running?`);
+      setError(
+        err instanceof SummarizeError ? err.message : "Something went wrong generating the summary.",
+      );
     }
   }
 
@@ -139,17 +143,29 @@ export function App() {
         {status === "summarizing" && <p className="status">Sending to AI…</p>}
       </div>
 
-      <details className="card">
+      <details
+        className="card"
+        open={settingsOpen}
+        onToggle={(e) => setSettingsOpen((e.currentTarget as HTMLDetailsElement).open)}
+      >
         <summary>Settings</summary>
         <div className="stack" style={{ marginTop: 10 }}>
           <div>
-            <label>Backend URL</label>
+            <label>Gemini API key</label>
             <input
-              type="url"
-              value={settings.backendUrl}
-              onChange={(e) => update({ backendUrl: e.target.value })}
-              placeholder="http://localhost:3000"
+              type="password"
+              value={settings.apiKey}
+              onChange={(e) => update({ apiKey: e.target.value })}
+              placeholder="Paste your Gemini API key"
+              autoComplete="off"
+              spellCheck={false}
             />
+            <p className="muted" style={{ marginTop: 4 }}>
+              Stored only in this browser ·{" "}
+              <a href={API_KEY_URL} target="_blank" rel="noreferrer">
+                Get a free key
+              </a>
+            </p>
           </div>
           <div>
             <label>Your name in the chat (optional) — powers “What needs you”</label>

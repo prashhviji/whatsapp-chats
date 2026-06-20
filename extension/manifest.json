@@ -1,13 +1,12 @@
 {
   "manifest_version": 3,
-  "name": "WhatsApp Chat Summarizer",
-  "version": "0.1.0",
-  "description": "Summarize the current WhatsApp Web chat into a grounded briefing with cited sources.",
+  "name": "WhatsApp Group Chat Summarizer",
+  "version": "0.2.0",
+  "description": "Summarize the current WhatsApp Web chat into a grounded, cited briefing. Runs entirely in your browser with your own Gemini API key — no server.",
   "permissions": ["scripting", "storage", "sidePanel"],
   "host_permissions": [
     "https://web.whatsapp.com/*",
-    "http://localhost/*",
-    "http://127.0.0.1/*"
+    "https://generativelanguage.googleapis.com/*"
   ],
   "background": { "service_worker": "background.js" },
   "action": { "default_title": "WhatsApp Summarizer" },
