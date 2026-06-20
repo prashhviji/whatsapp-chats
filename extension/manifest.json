@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "WhatsApp Chat Summarizer",
+  "version": "0.1.0",
+  "description": "Summarize the current WhatsApp Web chat into a grounded briefing with cited sources.",
+  "permissions": ["scripting", "storage", "sidePanel"],
+  "host_permissions": [
+    "https://web.whatsapp.com/*",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
+  ],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_title": "WhatsApp Summarizer" },
+  "side_panel": { "default_path": "sidepanel.html" }
+}

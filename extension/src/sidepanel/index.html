@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>WhatsApp Summarizer</title>
+    <style>
+      :root {
+        --bg: #f7f8fa;
+        --card: #ffffff;
+        --border: #e4e7ec;
+        --text: #1f2937;
+        --muted: #6b7280;
+        --accent: #059669;
+        --accent-weak: #ecfdf5;
+        --danger: #b91c1c;
+        --danger-weak: #fef2f2;
+        --warn-weak: #fffbeb;
+        --warn: #92400e;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font: 14px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      }
+      .wrap { padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+      h1 { font-size: 16px; margin: 0; }
+      .sub { color: var(--muted); font-size: 12px; margin: 2px 0 0; }
+      .card { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 12px; }
+      .card.accent { border-color: #6ee7b7; }
+      .section-title { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); margin: 0 0 8px; }
+      label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+      input[type="text"], input[type="url"], input[type="number"] {
+        width: 100%; padding: 7px 9px; border: 1px solid var(--border); border-radius: 8px; font: inherit; background: #fff;
+      }
+      input:focus { outline: none; border-color: var(--accent); }
+      .row { display: flex; gap: 8px; }
+      .btn {
+        border: none; border-radius: 9px; padding: 10px 14px; font: inherit; font-weight: 600; cursor: pointer;
+      }
+      .btn-primary { background: var(--accent); color: #fff; width: 100%; }
+      .btn-primary:disabled { opacity: .5; cursor: not-allowed; }
+      .status { font-size: 12px; color: var(--muted); margin-top: 8px; text-align: center; }
+      .error { background: var(--danger-weak); color: var(--danger); padding: 8px 10px; border-radius: 8px; font-size: 13px; }
+      .note { background: var(--warn-weak); color: var(--warn); padding: 8px 10px; border-radius: 8px; font-size: 12px; }
+      ul { margin: 0; padding-left: 0; list-style: none; display: flex; flex-direction: column; gap: 8px; }
+      .pill { display: inline-block; background: #f1f5f9; border-radius: 999px; padding: 3px 10px; font-size: 12px; margin: 0 4px 4px 0; }
+      .pill .c { color: var(--muted); }
+      .badge { display: inline-block; background: var(--accent-weak); color: var(--accent); border-radius: 6px; padding: 1px 6px; font-size: 10px; font-weight: 700; text-transform: uppercase; margin-right: 6px; }
+      .cite {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; color: var(--accent);
+        background: var(--accent-weak); border: none; border-radius: 5px; padding: 1px 5px; margin-left: 4px; cursor: pointer;
+      }
+      .cite:hover { background: #d1fae5; }
+      details > summary { cursor: pointer; font-size: 12px; color: var(--muted); font-weight: 600; }
+      .msg { font-size: 12px; padding: 3px 6px; border-radius: 6px; scroll-margin-top: 10px; }
+      .msg .id { font-family: ui-monospace, monospace; color: #9ca3af; }
+      .msg .who { font-weight: 600; }
+      .msg.hl { background: #d1fae5; box-shadow: inset 0 0 0 1px #6ee7b7; }
+      .muted { color: var(--muted); font-size: 12px; }
+      .stack { display: flex; flex-direction: column; gap: 12px; }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="./sidepanel.js"></script>
+  </body>
+</html>

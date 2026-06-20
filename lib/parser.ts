@@ -128,3 +128,30 @@ export function parseWhatsAppExport(raw: string): ParsedMessage[] {
 
   return messages;
 }
+
+/** A message scraped live (e.g. by the browser extension) before indexing. */
+export interface RawMessage {
+  sender: string | null;
+  timestamp: string;
+  text: string;
+}
+
+/**
+ * Turn already-structured messages (from the extension's DOM scraper) into the
+ * same ParsedMessage shape the cleaning/summarization stages expect, assigning
+ * stable citation ids. This lets the extension reuse the exact same engine as
+ * the file-upload path.
+ */
+export function indexRawMessages(raw: RawMessage[]): ParsedMessage[] {
+  return raw.map((m, index) => {
+    const sender = typeof m.sender === "string" && m.sender.trim() ? m.sender : null;
+    return {
+      index,
+      id: `m${index}`,
+      timestamp: typeof m.timestamp === "string" ? m.timestamp : "",
+      sender,
+      text: typeof m.text === "string" ? m.text : "",
+      isSystem: sender === null,
+    };
+  });
+}
