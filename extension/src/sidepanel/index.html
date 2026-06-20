@@ -61,6 +61,33 @@
       .msg.hl { background: #d1fae5; box-shadow: inset 0 0 0 1px #6ee7b7; }
       .muted { color: var(--muted); font-size: 12px; }
       .stack { display: flex; flex-direction: column; gap: 12px; }
+
+      /* --- Story mode ------------------------------------------------------ */
+      .story { background: linear-gradient(160deg, #0f172a, #1e293b); border-color: #334155; color: #e5e7eb; }
+      .story .section-title { color: #94a3b8; }
+      .story-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+      .story-head .muted { color: #94a3b8; }
+      .story-stage { text-align: center; padding: 8px 4px 2px; min-height: 156px; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+      .story-emoji { font-size: 56px; line-height: 1; animation: storyPop .38s ease; }
+      .story-narration { font-size: 15px; line-height: 1.5; margin: 0; color: #f1f5f9; animation: storyFade .4s ease; }
+      .story-cast { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; }
+      .avatar { display: inline-flex; align-items: center; gap: 5px; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.14); border-radius: 999px; padding: 3px 10px 3px 6px; font-size: 12px; }
+      .avatar .a-emoji { font-size: 16px; }
+      .avatar .a-name { color: #cbd5e1; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .story-cites .cite { background: rgba(52,211,153,.15); color: #6ee7b7; }
+      .story-cites .cite:hover { background: rgba(52,211,153,.28); }
+      .scrubber { -webkit-appearance: none; appearance: none; width: 100%; height: 8px; border-radius: 999px; margin: 14px 0 10px; background: #334155; accent-color: #34d399; cursor: pointer; }
+      .scrubber::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 20px; height: 20px; border-radius: 50%; background: #34d399; border: 3px solid #064e3b; cursor: grab; box-shadow: 0 1px 4px rgba(0,0,0,.4); }
+      .scrubber::-webkit-slider-thumb:active { cursor: grabbing; transform: scale(1.12); }
+      .story-controls { display: flex; gap: 6px; justify-content: center; align-items: center; }
+      .iconbtn { background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.16); color: #e5e7eb; border-radius: 9px; padding: 7px 11px; font-size: 15px; line-height: 1; cursor: pointer; }
+      .iconbtn:hover:not(:disabled) { background: rgba(255,255,255,.18); }
+      .iconbtn:disabled { opacity: .35; cursor: not-allowed; }
+      .iconbtn.play { background: var(--accent); border-color: #10b981; min-width: 48px; }
+      .iconbtn.play:hover { background: #0f9d6b; }
+      .story-hint { text-align: center; color: #94a3b8 !important; margin: 8px 0 0; }
+      @keyframes storyPop { 0% { transform: scale(.5); opacity: 0; } 60% { transform: scale(1.15); } 100% { transform: scale(1); opacity: 1; } }
+      @keyframes storyFade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
     </style>
   </head>
   <body>
