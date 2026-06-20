@@ -1,6 +1,7 @@
-import { useEffect, useState } from "react";
-import type { ScrapeResponse, SummarizeResponse, TranscriptMessage } from "../types";
+import { useEffect, useRef, useState } from "react";
+import type { ScrapeResponse, StoryBeat, SummarizeResponse, TranscriptMessage } from "../types";
 import { runSummary, SummarizeError } from "../summarizer";
+import { EMOTION_EMOJI, avatarFor, speakBeat, stopSpeaking, voiceSupported } from "./story";
 
 const STORAGE_KEY = "wa_summarizer_settings";
 const API_KEY_URL = "https://aistudio.google.com/apikey";
@@ -196,6 +197,177 @@ export function App() {
   );
 }
 
+function StoryMode({ story, onJump }: { story: StoryBeat[]; onJump: (id: string) => void }) {
+  const n = story.length;
+  const [idx, setIdx] = useState(0);
+  const [playing, setPlaying] = useState(false);
+  const [voiceOn, setVoiceOn] = useState(voiceSupported());
+
+  // runRef invalidates a running auto-play chain when the user does anything.
+  const runRef = useRef(0);
+  const startedRef = useRef(false);
+  const dragSpeakRef = useRef<number | null>(null);
+
+  // Reset when a new summary arrives.
+  useEffect(() => {
+    runRef.current++;
+    stopSpeaking();
+    setIdx(0);
+    setPlaying(false);
+    startedRef.current = false;
+  }, [story]);
+
+  // Stop any narration when the panel unmounts.
+  useEffect(
+    () => () => {
+      runRef.current++;
+      stopSpeaking();
+      if (dragSpeakRef.current) window.clearTimeout(dragSpeakRef.current);
+    },
+    [],
+  );
+
+  const beat = story[Math.min(idx, n - 1)];
+
+  // Speak shortly after the user settles on a beat (so scrubbing fast stays quiet).
+  function speakSoon(i: number) {
+    if (dragSpeakRef.current) window.clearTimeout(dragSpeakRef.current);
+    dragSpeakRef.current = window.setTimeout(() => {
+      speakBeat(story[i].narration, story[i].emotion);
+    }, 220);
+  }
+
+  // Manual navigation (scrubber drag, prev/next/restart).
+  function go(target: number) {
+    runRef.current++; // cancel any auto-play chain
+    setPlaying(false);
+    stopSpeaking();
+    startedRef.current = true;
+    const c = Math.max(0, Math.min(n - 1, target));
+    setIdx(c);
+    if (voiceOn) speakSoon(c);
+  }
+
+  function play() {
+    if (n === 0) return;
+    startedRef.current = true;
+    const myRun = ++runRef.current;
+    setPlaying(true);
+    let i = idx >= n - 1 ? 0 : idx; // restart if parked at the end
+
+    const step = () => {
+      if (runRef.current !== myRun) return;
+      setIdx(i);
+      const advance = () => {
+        if (runRef.current !== myRun) return;
+        if (i + 1 < n) {
+          i++;
+          step();
+        } else {
+          setPlaying(false);
+        }
+      };
+      if (voiceOn) speakBeat(story[i].narration, story[i].emotion, advance);
+      else window.setTimeout(advance, 2600); // reading pace when muted
+    };
+    step();
+  }
+
+  function pause() {
+    runRef.current++;
+    setPlaying(false);
+    stopSpeaking();
+  }
+
+  function toggleVoice() {
+    setVoiceOn((on) => {
+      const next = !on;
+      if (!next) {
+        runRef.current++;
+        setPlaying(false);
+        stopSpeaking();
+      }
+      return next;
+    });
+  }
+
+  if (n === 0) return null;
+
+  return (
+    <div className="card story">
+      <div className="story-head">
+        <p className="section-title" style={{ margin: 0 }}>
+          🎬 Story mode
+        </p>
+        <span className="muted">
+          Beat {Math.min(idx + 1, n)} / {n}
+        </span>
+      </div>
+
+      <div className="story-stage">
+        <div className="story-emoji" key={`e${idx}`}>
+          {EMOTION_EMOJI[beat.emotion]}
+        </div>
+        <p className="story-narration" key={`t${idx}`}>
+          {beat.narration}
+        </p>
+        {beat.participants.length > 0 && (
+          <div className="story-cast">
+            {beat.participants.map((p) => (
+              <span key={p} className="avatar" title={p}>
+                <span className="a-emoji">{avatarFor(p)}</span>
+                <span className="a-name">{p}</span>
+              </span>
+            ))}
+          </div>
+        )}
+        {beat.sourceIds.length > 0 && (
+          <div className="story-cites">
+            <Citations ids={beat.sourceIds} onJump={onJump} />
+          </div>
+        )}
+      </div>
+
+      <input
+        className="scrubber"
+        type="range"
+        min={0}
+        max={n - 1}
+        step={1}
+        value={Math.min(idx, n - 1)}
+        onChange={(e) => go(parseInt(e.target.value, 10))}
+        aria-label="Story timeline"
+      />
+
+      <div className="story-controls">
+        <button className="iconbtn" onClick={() => go(idx - 1)} disabled={idx <= 0} title="Previous">
+          ⏮
+        </button>
+        <button className="iconbtn play" onClick={playing ? pause : play} title={playing ? "Pause" : "Play"}>
+          {playing ? "⏸" : "▶"}
+        </button>
+        <button className="iconbtn" onClick={() => go(idx + 1)} disabled={idx >= n - 1} title="Next">
+          ⏭
+        </button>
+        <button className="iconbtn" onClick={() => go(0)} title="Restart">
+          ↺
+        </button>
+        {voiceSupported() && (
+          <button
+            className={`iconbtn${voiceOn ? " on" : ""}`}
+            onClick={toggleVoice}
+            title={voiceOn ? "Mute narration" : "Unmute narration"}
+          >
+            {voiceOn ? "🔊" : "🔇"}
+          </button>
+        )}
+      </div>
+
+      <p className="muted story-hint">Drag the bar to scrub · ▶ to play it as a narrated story</p>
+    </div>
+  );
+}
+
 function Citations({ ids, onJump }: { ids: string[]; onJump: (id: string) => void }) {
   if (!ids?.length) return null;
   return (
@@ -223,6 +395,8 @@ function Briefing({
   return (
     <div className="stack">
       {truncated && <div className="note">Large chat — only the most recent messages were summarized.</div>}
+
+      {summary.story.length > 0 && <StoryMode story={summary.story} onJump={onJump} />}
 
       <div className="card">
         <p className="section-title">Overview</p>
